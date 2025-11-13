@@ -1,29 +1,26 @@
 function theta_new = randw(theta_old, LB, UB, RWM)
-%RANDW  Box-constrained RWM proposal using a single Gaussian draw + fold.
+%RANDW  Box-constrained RWM proposal using a single Gaussian draw + reflection.
 %
 % Input
 %   theta_old : 1 x d current state
 %   LB, UB    : 1 x d lower/upper bounds
 %   RWM       : struct with fields:
 %                 .Cov      : d x d proposal covariance (default 1e-4*I)
-%                 .FoldType : 'fold' or 'reflect' (default: 'fold')
 %                 .Jitter   : scalar diagonal jitter (optional; default 1e-6)
 %
 % Output
-%   theta_new : 1 x d proposed state after folding into [LB,UB]
+%   theta_new : 1 x d proposed state after reflecting into [LB,UB]
 %
 % Notes
 % - Robust to near-singular/unsymmetric covariance by enforcing symmetry and
 %   increasing diagonal jitter until Cholesky succeeds.
-% - 'fold' (periodization): theta = LB + mod(z - LB, UB-LB).
-% - 'reflect' (mirror): triangle-wave reflection per dimension.
+% - Boundaries are handled by triangle-wave reflection per dimension.
 
     d = numel(theta_old);
 
     % ---- Defaults ----
-    if ~isfield(RWM,'Cov')      || isempty(RWM.Cov),      RWM.Cov = 1e-4*eye(d); end
-    if ~isfield(RWM,'FoldType') || isempty(RWM.FoldType), RWM.FoldType = 'fold'; end
-    if ~isfield(RWM,'Jitter')   || isempty(RWM.Jitter),   RWM.Jitter = 1e-6;     end
+    if ~isfield(RWM,'Cov')    || isempty(RWM.Cov),    RWM.Cov    = 1e-4*eye(d); end
+    if ~isfield(RWM,'Jitter') || isempty(RWM.Jitter), RWM.Jitter = 1e-6;        end
 
     % ---- Ensure symmetry & positive definiteness (Cholesky-safe) ----
     Sigma = RWM.Cov;
@@ -60,28 +57,17 @@ function theta_new = randw(theta_old, LB, UB, RWM)
     delta = randn(1,d) * R;           % R is upper-tri: N(0, R'*R)
     z = theta_old + delta;
 
-    % ---- Fold back into the box ----
-    switch lower(RWM.FoldType)
-        case 'fold'
-            theta_new = wrap_into_box(z, LB, UB);
-        case 'reflect'
-            theta_new = reflect_into_box(z, LB, UB);
-        otherwise
-            error('RWM.FoldType must be ''fold'' or ''reflect''.');
-    end
+    % ---- Reflect back into the box (triangle-wave reflection) ----
+    theta_new = reflect_into_box(z, LB, UB);
 end
 
-
-% --------- local folding utilities ---------
-function y = wrap_into_box(z, LB, UB)
-L = UB - LB;
-y = LB + mod(z - LB, L);
-end
-
+% --------- local reflection utility ---------
 function y = reflect_into_box(z, LB, UB)
-% triangle-wave reflection to enforce bounds
-L = UB - LB;
-y = (z - LB) ./ L;        % scale to unit
-y = abs(mod(y,2) - 1);    % triangle wave in [0,1]
-y = LB + y .* L;          % scale back
+%REFLECT_INTO_BOX  Triangle-wave reflection to enforce bounds.
+% Applies per-dimension reflection into [LB,UB].
+
+    L = UB - LB;
+    y = (z - LB) ./ L;        % scale to unit
+    y = abs(mod(y,2) - 1);    % triangle wave in [0,1]
+    y = LB + y .* L;          % scale back
 end

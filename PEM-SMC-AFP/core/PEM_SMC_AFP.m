@@ -48,19 +48,19 @@ function [parameter_iteration, out] = PEM_SMC_AFP(Np, S, bound, logpdf_handle, o
 %     .PeriodK    integer  for 'Periodic': resample every K stages               (default: 1)
 %
 %   options.Moves
-%     .Sequence       cellstr enabled move names in the order to run each stage.
+%     .Sequence     cellstr enabled move names in the order to run each stage.
 %                   Valid names: 'ARM', 'XOVER', 'DEMH'. Examples:
 %                     {'ARM','XOVER','DEMH'}   % run all, in this order (default)
 %                     {'DEMH','ARM'}           % only DE–MH then ARM
 %                     {'XOVER'}                % only crossover
-%                 - ARM       : Adaptive Random-Walk Metropolis (symmetric fold/reflect)
-%                     .ARM.Cov       [d x d] initial covariance (adapted each stage)
-%                     .ARM.FoldType  'reflect' | 'fold'
-%                     .ARM.Jitter    scalar diagonal jitter for PD-ness
+%                 - ARM       : Adaptive Random-Walk Metropolis
+%                               with reflective box boundaries.
+%                     .ARM.Cov       [d x d] ...
+%                     .ARM.Jitter    ...
 %                 - DEMH      : Differential-Evolution Metropolis–Hastings
-%                     .DEMH.Gamma    scalar   DE jump rate (2.38/sqrt(2*d) by default)
-%                     .DEMH.NoiseSD  scalar   additive Gaussian jitter std
-%                     .DEMH.FoldType 'fold' | 'reflect'
+%                               with reflective box boundaries.
+%                     .DEMH.Gamma    ...
+%                     .DEMH.NoiseSD  ...
 %                 - Crossover : Single-point two-parent crossover
 %                     .Crossover.pc  scalar   per-pair crossover probability
 %
@@ -89,13 +89,13 @@ function [parameter_iteration, out] = PEM_SMC_AFP(Np, S, bound, logpdf_handle, o
 %       .timing      : struct   .elapsed_sec total wall time (seconds)
 %
 % Notes
-% - Proposal boundary handling is symmetric via fold/reflect (external helpers).
+% - Proposal boundary handling uses reflective mappings (external helpers).
 % - Evidence increment per stage uses the standard annealed-SMC estimator in log-domain.
 % - Resampling is governed by Policy ('ESS' or 'Periodic') and Method ('systematic'|'residual').
 % - Move operators and their hyperparameters live under options.Moves.* and run in the order given.
 %
 % External helpers required on path:
-%   target (optional default logpdf), ResampSys, randw, Generatep_fold.
+%   target (optional default logpdf), ResampSys, randw, Generatep_reflect.
 %
 % -------------------------------------------------------------------------
 
@@ -403,7 +403,7 @@ while true
 
                 if opts.Parallel.Enabled
                     parfor k = 1:Np
-                        propDE  = Generatep_fold(old_theta, k, LB, UB, opts.Moves.DEMH);
+                        propDE  = Generatep_reflect(old_theta, k, LB, UB, opts.Moves.DEMH);
                         ll_prop = call_logpdf(logpdf_handle, propDE, opts.Data);
                         ratio = min(1, exp(beta_new_raw * (ll_prop - old_ll(k))));
                         if rand() < ratio
@@ -414,7 +414,7 @@ while true
                     end
                 else
                     for k = 1:Np
-                        propDE  = Generatep_fold(old_theta, k, LB, UB, opts.Moves.DEMH);
+                        propDE  = Generatep_reflect(old_theta, k, LB, UB, opts.Moves.DEMH);
                         ll_prop = call_logpdf(logpdf_handle, propDE, opts.Data);
                         ratio = min(1, exp(beta_new_raw * (ll_prop - old_ll(k))));
                         if rand() < ratio
@@ -525,11 +525,9 @@ opts.Tempering.BandDecay = struct( ...
 opts.Moves = struct();
 opts.Moves.Sequence = {'ARM','XOVER','DEMH'};              % default order
 opts.Moves.ARM = struct('Cov', 1e-3*eye(d), ...
-                        'FoldType','reflect', ...
                         'Jitter', 1e-6);
 opts.Moves.DEMH = struct('Gamma',   2.38 / sqrt(2*d), ...
-                         'NoiseSD', 1e-4, ...
-                         'FoldType','reflect');
+                         'NoiseSD', 1e-4);
 opts.Moves.Crossover = struct('pc', 0.7);
 
 % Resampling
@@ -780,11 +778,12 @@ function print_pem_smc_config(opts, Np, d, S_in, logpdf_handle)
     end
     fprintf('\n');
 
-    fprintf(' ARM kernel     : FoldType=%s | Jitter=%.6g | Cov=adaptive per stage (2.38^2/d)\n', ...
-            char(opts.Moves.ARM.FoldType), opts.Moves.ARM.Jitter);
+    fprintf(' ARM kernel     : Boundary=reflect | Jitter=%.6g | Cov=adaptive per stage (2.38^2/d)\n', ...
+        opts.Moves.ARM.Jitter);
 
-    fprintf(' DE–MH kernel   : FoldType=%s | Gamma=%.6g | NoiseSD=%.6g\n', ...
-            char(opts.Moves.DEMH.FoldType), opts.Moves.DEMH.Gamma, opts.Moves.DEMH.NoiseSD);
+    fprintf(' DE–MH kernel   : Boundary=reflect | Gamma=%.6g | NoiseSD=%.6g\n', ...
+        opts.Moves.DEMH.Gamma, opts.Moves.DEMH.NoiseSD);
+
 
     fprintf(' XOVER kernel   : pc=%.3f (single-point)\n', opts.Moves.Crossover.pc);
 
