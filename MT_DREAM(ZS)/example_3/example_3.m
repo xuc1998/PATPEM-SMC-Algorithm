@@ -45,8 +45,9 @@ bounds=[10,  0.25,  2.5,   0.05,    2.5,   -500;
 Par_info.min = bounds(1,:);                % 1xd-vector of min parameter values    
 Par_info.max=bounds(2,:);                  % 1xd-vector of max parameter values    
 Par_info.boundhandling='reflect';            % reject of boudn proposals
+
 %% Define name of function (.m file) for posterior exploration
-Func_name = 'CoLM';
+Func_name = 'target';
 observed_LE=importdata('./obs_LE.txt');
 observed_NEE=importdata('./obs_NEE.txt');
 observed_RSM=importdata('./obs_RSM.txt');
