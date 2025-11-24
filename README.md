@@ -1,6 +1,6 @@
 # PATPEM-SMC Algorithm – MATLAB Code
 
-This repository bundles the MATLAB code used in the PEM-SMC-AFP study:
+This repository bundles the MATLAB code used in the PATPEM-SMC study:
 
 - **PATPEM-SMC/** – tempered Sequential Monte Carlo algorithm with adaptive tempering,
   flexible move scheduling, and parallelism.  
