@@ -1,10 +1,10 @@
-# PEM-SMC-AFP Algorithm – MATLAB Code
+# PATPEM-SMC Algorithm – MATLAB Code
 
 This repository bundles the MATLAB code used in the PEM-SMC-AFP study:
 
-- **PEM-SMC-AFP/** – tempered Sequential Monte Carlo algorithm with adaptive tempering,
+- **PATPEM-SMC/** – tempered Sequential Monte Carlo algorithm with adaptive tempering,
   flexible move scheduling, and parallelism.  
-  Detailed installation and usage instructions are given in `PEM-SMC-AFP/README.md`.
+  Detailed installation and usage instructions are given in `PATPEM-SMC/README.md`.
 
 - **MT_DREAM(ZS)/** – MT-DREAM(ZS) sampler used as a baseline in the CoLM case studies.  
   See `MT_DREAM(ZS)/README.md` for details.
