@@ -68,6 +68,6 @@ function y = reflect_into_box(z, LB, UB)
 
     L = UB - LB;
     y = (z - LB) ./ L;        % scale to unit
-    y = abs(mod(y,2) - 1);    % triangle wave in [0,1]
+    y = 1-abs(mod(y,2) - 1);    % triangle wave in [0,1]
     y = LB + y .* L;          % scale back
 end

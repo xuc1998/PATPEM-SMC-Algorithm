@@ -42,6 +42,6 @@ function y = reflect_into_box(z, LB, UB)
 
     L = UB - LB;
     y = (z - LB) ./ L;
-    y = abs(mod(y,2) - 1);
+    y = 1-abs(mod(y,2) - 1);
     y = LB + y .* L;
 end
